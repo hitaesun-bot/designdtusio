@@ -18,6 +18,12 @@ import {
   Info,
   X,
   UserPlus,
+  Share2,
+  ExternalLink,
+  Download,
+  Copy,
+  Check,
+  ImageIcon,
 } from 'lucide-react';
 
 export const ClassManagementView: React.FC = () => {
@@ -60,6 +66,10 @@ export const ClassManagementView: React.FC = () => {
   const [editTeamSection, setEditTeamSection] = useState('');
   const [editTeamLeaderName, setEditTeamLeaderName] = useState('');
   const [editMemberNameToAdd, setEditMemberNameToAdd] = useState('');
+
+  // Open Graph preview & share state
+  const [copiedOgUrl, setCopiedOgUrl] = useState(false);
+  const [copiedTags, setCopiedTags] = useState(false);
 
   // Handle class settings save
   const handleSaveClassSettings = (e: React.FormEvent) => {
@@ -616,7 +626,175 @@ export const ClassManagementView: React.FC = () => {
         </form>
       </div>
 
-      {/* 4. Unassigned Students & Participation Approval */}
+      {/* 4. Open Graph Social Card & Deployment Share Settings */}
+      <div className="bg-white border border-[#D8D4CD] rounded-xl p-6 shadow-xs space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#D8D4CD] pb-3 gap-2">
+          <div className="flex items-center gap-2">
+            <Share2 className="w-5 h-5 text-[#D65A2F]" />
+            <div>
+              <h3 className="text-base font-bold text-[#202020]">
+                배포용 오픈 그래프(Open Graph) 소셜 공유 카드
+              </h3>
+              <p className="text-xs text-stone-500">
+                카카오톡, 슬랙, 노션, 트위터/X 등에 링크 공유 시 자동으로 표시되는 1200×630 프리뷰 카드입니다.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href="/og-image.png"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg text-xs font-semibold transition-colors"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>원본 이미지 열기</span>
+            </a>
+            <a
+              href="/og-image.png"
+              download="ds2-team-tracker-og.png"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#202020] hover:bg-black text-white rounded-lg text-xs font-semibold transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>PNG 다운로드</span>
+            </a>
+          </div>
+        </div>
+
+        {/* Live Visual Preview */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left: The OG Image Banner Preview */}
+          <div className="lg:col-span-7 space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-stone-600">
+              <span className="flex items-center gap-1.5">
+                <ImageIcon className="w-4 h-4 text-[#D65A2F]" />
+                생성된 1200 × 630 오픈 그래프 이미지
+              </span>
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
+                PNG & SVG 준비 완료
+              </span>
+            </div>
+            <div className="relative rounded-xl overflow-hidden border border-[#D8D4CD] shadow-sm bg-[#F5F2EC] aspect-[1200/630] group">
+              <img
+                src="/og-image.png"
+                alt="DSII TEAM TRACKER Open Graph Social Card Preview"
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <p className="text-[11px] text-stone-500">
+              * 정규 1.91:1 비율(1200×630px)로 제작되어 카카오톡 인앱 브라우저 및 메신저 썸네일 잘림 현상이 없습니다.
+            </p>
+          </div>
+
+          {/* Right: Social Share Preview Simulator (KakaoTalk / Slack style) */}
+          <div className="lg:col-span-5 space-y-4">
+            <div>
+              <span className="text-xs font-bold text-stone-700 block mb-2">
+                메신저(카카오톡·슬랙) 공유 시 노출 예시
+              </span>
+              {/* Simulated Chat Message Card */}
+              <div className="bg-[#FAF8F5] border border-[#D8D4CD] rounded-xl p-3.5 shadow-xs space-y-2.5 max-w-sm">
+                <div className="rounded-lg overflow-hidden border border-[#D8D4CD] aspect-[1200/630] bg-stone-100">
+                  <img
+                    src="/og-image.png"
+                    alt="Social Preview"
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-[#8C827A] uppercase tracking-wider block">
+                    ai.studio/apps/3ac3f431-7261-4d0a-b064-b8ef794a975a
+                  </span>
+                  <h4 className="text-sm font-bold text-[#202020] leading-snug">
+                    DSII TEAM TRACKER · 디자인스튜디오 II
+                  </h4>
+                  <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed">
+                    김태선 교수 디자인스튜디오 II 15주 팀 프로젝트 관리 시스템 (01반·02반 16개 팀 주간 진척·산출물·크리틱 피드백)
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Share Link & One-Click Copy */}
+            <div className="space-y-2 pt-1">
+              <label className="block text-xs font-bold text-stone-700">
+                공식 배포 공유 링크
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value="https://ai.studio/apps/3ac3f431-7261-4d0a-b064-b8ef794a975a"
+                  className="w-full p-2 text-xs font-mono bg-stone-50 border border-[#D8D4CD] rounded-lg text-stone-700 select-all"
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      'https://ai.studio/apps/3ac3f431-7261-4d0a-b064-b8ef794a975a'
+                    );
+                    setCopiedOgUrl(true);
+                    setTimeout(() => setCopiedOgUrl(false), 2500);
+                  }}
+                  className="shrink-0 px-3 py-2 bg-[#D65A2F] hover:bg-[#b84821] text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
+                >
+                  {copiedOgUrl ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>복사됨</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>링크 복사</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Meta tags preview toggle */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const metaTags = `<meta property="og:type" content="website" />
+<meta property="og:site_name" content="DSII TEAM TRACKER" />
+<meta property="og:title" content="DSII TEAM TRACKER · 디자인스튜디오 II" />
+<meta property="og:description" content="김태선 교수 디자인스튜디오 II 15주 팀 프로젝트 관리 시스템 (01반·02반 16개 팀 주간 진척·산출물·크리틱 피드백)" />
+<meta property="og:url" content="https://ai.studio/apps/3ac3f431-7261-4d0a-b064-b8ef794a975a" />
+<meta property="og:image" content="https://ai.studio/apps/3ac3f431-7261-4d0a-b064-b8ef794a975a/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="DSII TEAM TRACKER · 디자인스튜디오 II" />
+<meta name="twitter:description" content="김태선 교수 디자인스튜디오 II 15주 팀 프로젝트 관리 시스템 (01반·02반 16개 팀 주간 진척·산출물·크리틱 피드백)" />
+<meta name="twitter:image" content="https://ai.studio/apps/3ac3f431-7261-4d0a-b064-b8ef794a975a/og-image.png" />`;
+                  navigator.clipboard.writeText(metaTags);
+                  setCopiedTags(true);
+                  setTimeout(() => setCopiedTags(false), 2500);
+                }}
+                className="text-xs text-stone-600 hover:text-stone-900 font-semibold underline flex items-center gap-1"
+              >
+                {copiedTags ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span className="text-emerald-700">HTML 메타 태그 복사 완료!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>배포용 HTML Open Graph & Twitter 태그 클립보드 복사</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Unassigned Students & Participation Approval */}
       <div className="bg-white border border-[#D8D4CD] rounded-xl p-6 shadow-xs space-y-4">
         <div className="flex items-center gap-2 border-b border-[#D8D4CD] pb-3">
           <UserCheck className="w-5 h-5 text-[#D65A2F]" />

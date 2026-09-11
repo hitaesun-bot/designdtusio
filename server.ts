@@ -66,6 +66,9 @@ async function startServer() {
     }
   });
 
+  // Serve static assets from public (e.g., og-image.png, og-image.svg)
+  app.use(express.static(path.join(process.cwd(), "public")));
+
   // Vite middleware for development vs Static serving for production
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

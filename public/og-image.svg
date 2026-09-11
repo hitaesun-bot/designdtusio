@@ -1,0 +1,155 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with warm studio tone -->
+  <rect width="1200" height="630" fill="#F5F2EC"/>
+  
+  <!-- Architectural drafting grid pattern -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E6E0D5" stroke-width="1"/>
+    </pattern>
+    <linearGradient id="terracottaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D65A2F"/>
+      <stop offset="100%" stop-color="#B84821"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FAF8F5"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-10" y="-10" width="1220" height="650" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#202020" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <!-- Grid overlay -->
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Outer drafting border -->
+  <rect x="32" y="32" width="1136" height="566" rx="20" fill="none" stroke="#D8D4CD" stroke-width="2"/>
+  
+  <!-- Left accent bar -->
+  <rect x="32" y="32" width="10" height="566" rx="4" fill="#D65A2F"/>
+
+  <!-- Top metadata row -->
+  <g transform="translate(70, 72)">
+    <!-- Semester badge -->
+    <rect x="0" y="0" width="280" height="34" rx="6" fill="#202020"/>
+    <text x="140" y="22" fill="#FFFFFF" font-family="'Pretendard', sans-serif, system-ui" font-size="13" font-weight="700" text-anchor="middle" letter-spacing="1">
+      2026학년도 1학기 · 리빙가구디자인과
+    </text>
+
+    <!-- Professor badge -->
+    <rect x="292" y="0" width="170" height="34" rx="6" fill="#FAF8F5" stroke="#D8D4CD" stroke-width="1.5"/>
+    <text x="377" y="22" fill="#202020" font-family="'Pretendard', sans-serif, system-ui" font-size="13" font-weight="700" text-anchor="middle">
+      담당: 김태선 교수
+    </text>
+
+    <!-- Scale & Section badge -->
+    <rect x="474" y="0" width="190" height="34" rx="6" fill="#FFF3EC" stroke="#F0BCA7" stroke-width="1.5"/>
+    <text x="569" y="22" fill="#D65A2F" font-family="'Pretendard', sans-serif, system-ui" font-size="13" font-weight="800" text-anchor="middle">
+      01반 · 02반 (총 16개 팀)
+    </text>
+  </g>
+
+  <!-- Main Titles -->
+  <g transform="translate(70, 150)">
+    <!-- Brand / App Name -->
+    <text x="0" y="58" fill="#202020" font-family="'Pretendard', sans-serif, system-ui" font-size="62" font-weight="900" letter-spacing="-1.5">
+      DSII TEAM TRACKER
+    </text>
+
+    <!-- Subtitle / Subject -->
+    <text x="0" y="105" fill="#D65A2F" font-family="'Pretendard', sans-serif, system-ui" font-size="28" font-weight="800" letter-spacing="-0.5">
+      디자인스튜디오 II · 15주 팀 프로젝트 관리 시스템
+    </text>
+
+    <!-- Description -->
+    <text x="0" y="148" fill="#57534E" font-family="'Pretendard', sans-serif, system-ui" font-size="18" font-weight="500" line-height="28">
+      가구 프로토타입 주차별 진척률 · 공정 산출물 제출 · 교수자 1:1 크리틱 피드백 허브
+    </text>
+  </g>
+
+  <!-- Three Feature Cards -->
+  <g transform="translate(70, 340)">
+    <!-- Card 1: 01반 & 02반 16팀 -->
+    <g transform="translate(0, 0)">
+      <rect width="320" height="150" rx="14" fill="#FFFFFF" stroke="#D8D4CD" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <rect x="18" y="18" width="36" height="36" rx="8" fill="#FFF3EC"/>
+      <!-- Icon: Users / Sections -->
+      <path d="M30 38C30 33.5817 33.5817 30 38 30C42.4183 30 46 33.5817 46 38" stroke="#D65A2F" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="36" cy="28" r="4" stroke="#D65A2F" stroke-width="2.2"/>
+      <text x="66" y="34" fill="#8C827A" font-family="'Pretendard', sans-serif" font-size="11" font-weight="700">01반 8팀 · 02반 8팀</text>
+      <text x="66" y="50" fill="#202020" font-family="'Pretendard', sans-serif" font-size="17" font-weight="800">16개 프로젝트 팀 편성</text>
+      <text x="20" y="90" fill="#57534E" font-family="'Pretendard', sans-serif" font-size="13" font-weight="500">
+        가변형 벤치, 모듈 스툴, 라운지 체어
+      </text>
+      <text x="20" y="112" fill="#8C827A" font-family="'Pretendard', sans-serif" font-size="12" font-weight="500">
+        팀별 프로젝트 주제 및 인원 실시간 관리
+      </text>
+    </g>
+
+    <!-- Card 2: Weekly Curriculum -->
+    <g transform="translate(340, 0)">
+      <rect width="320" height="150" rx="14" fill="#FFFFFF" stroke="#D8D4CD" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <rect x="18" y="18" width="36" height="36" rx="8" fill="#F0FDF4"/>
+      <!-- Icon: Calendar & Milestone -->
+      <rect x="28" y="27" width="16" height="16" rx="3" stroke="#16A34A" stroke-width="2.2"/>
+      <path d="M28 32H44" stroke="#16A34A" stroke-width="2"/>
+      <text x="66" y="34" fill="#8C827A" font-family="'Pretendard', sans-serif" font-size="11" font-weight="700">1주 ~ 15주 전주차</text>
+      <text x="66" y="50" fill="#202020" font-family="'Pretendard', sans-serif" font-size="17" font-weight="800">주차별 내용 및 과업</text>
+      <text x="20" y="90" fill="#57534E" font-family="'Pretendard', sans-serif" font-size="13" font-weight="500">
+        강의 주제, 마일스톤, 필수 산출물
+      </text>
+      <text x="20" y="112" fill="#8C827A" font-family="'Pretendard', sans-serif" font-size="12" font-weight="500">
+        탐색 → 아이디에이션 → 개발 → 발표
+      </text>
+    </g>
+
+    <!-- Card 3: Professor Feedback -->
+    <g transform="translate(680, 0)">
+      <rect width="380" height="150" rx="14" fill="#FFFFFF" stroke="#D8D4CD" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <rect x="18" y="18" width="36" height="36" rx="8" fill="#EFF6FF"/>
+      <!-- Icon: Message / Critic -->
+      <rect x="27" y="27" width="18" height="14" rx="3" stroke="#2563EB" stroke-width="2.2"/>
+      <path d="M30 38L27 43V38" stroke="#2563EB" stroke-width="2.2"/>
+      <text x="66" y="34" fill="#8C827A" font-family="'Pretendard', sans-serif" font-size="11" font-weight="700">김태선 교수 크리틱 연동</text>
+      <text x="66" y="50" fill="#202020" font-family="'Pretendard', sans-serif" font-size="17" font-weight="800">승인 · 보완요청 · 피드백</text>
+      <text x="20" y="90" fill="#57534E" font-family="'Pretendard', sans-serif" font-size="13" font-weight="500">
+        실물 스케일 구조 검토 및 다음 주차 보완 과업
+      </text>
+      <text x="20" y="112" fill="#8C827A" font-family="'Pretendard', sans-serif" font-size="12" font-weight="500">
+        학생 화면에 즉각적인 피드백 알림 연동
+      </text>
+    </g>
+  </g>
+
+  <!-- Bottom URL & System Info footer -->
+  <g transform="translate(70, 550)">
+    <text x="0" y="0" fill="#8C827A" font-family="'Pretendard', monospace, sans-serif" font-size="12" font-weight="600">
+      ai.studio/apps/3ac3f431-7261-4d0a-b064-b8ef794a975a
+    </text>
+    <text x="1060" y="0" fill="#202020" font-family="'Pretendard', sans-serif" font-size="12" font-weight="800" text-anchor="end">
+      DESIGN STUDIO II · TEAM PROGRESS MANAGEMENT SYSTEM
+    </text>
+  </g>
+
+  <!-- Decorative Architectural Wireframe Drawing on top right -->
+  <g transform="translate(850, 70)" stroke="#D65A2F" stroke-width="1.8" fill="none" opacity="0.85">
+    <!-- Isometric chair wireframe -->
+    <polygon points="120,40 200,80 120,120 40,80" fill="#FAF5EE" stroke="#C25028"/>
+    <!-- Backrest -->
+    <line x1="40" y1="80" x2="40" y2="10" stroke="#C25028"/>
+    <line x1="120" y1="40" x2="120" y2="-30" stroke="#C25028"/>
+    <line x1="40" y1="10" x2="120" y2="-30" stroke="#C25028"/>
+    <!-- Chair legs -->
+    <line x1="40" y1="80" x2="40" y2="170"/>
+    <line x1="120" y1="120" x2="120" y2="210"/>
+    <line x1="200" y1="80" x2="200" y2="170"/>
+    <line x1="120" y1="40" x2="120" y2="130" stroke-dasharray="3 3"/>
+    <!-- Stretcher -->
+    <line x1="40" y1="140" x2="120" y2="180"/>
+    <line x1="120" y1="180" x2="200" y2="140"/>
+    <!-- Dimension marker -->
+    <line x1="220" y1="80" x2="220" y2="170" stroke="#8C827A" stroke-width="1" stroke-dasharray="2 2"/>
+    <text x="230" y="130" fill="#8C827A" font-family="monospace" font-size="10" font-weight="bold" stroke="none">H: 450</text>
+  </g>
+</svg>
