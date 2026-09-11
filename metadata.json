@@ -1,0 +1,6 @@
+{
+  "name": "DSII TEAM TRACKER",
+  "description": "Design Studio II · Team Progress Management - 디자인스튜디오 II 교과목 15주 팀 프로젝트 진행 관리 시스템",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

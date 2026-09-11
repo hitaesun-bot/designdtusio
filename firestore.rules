@@ -1,0 +1,180 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny all documents
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'google.com');
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Fetch user profile
+    function getUserDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data;
+    }
+
+    function userExists(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid));
+    }
+
+    function isProfessor() {
+      return isEmailVerified() && userExists(request.auth.uid) && getUserDoc(request.auth.uid).role == 'professor';
+    }
+
+    function isTeamLeader(teamId) {
+      return isEmailVerified() &&
+        exists(/databases/$(database)/documents/teams/$(teamId)) &&
+        get(/databases/$(database)/documents/teams/$(teamId)).data.leaderId == request.auth.uid;
+    }
+
+    function isTeamMember(teamId) {
+      return isEmailVerified() &&
+        exists(/databases/$(database)/documents/teams/$(teamId)) &&
+        (get(/databases/$(database)/documents/teams/$(teamId)).data.leaderId == request.auth.uid ||
+         request.auth.uid in get(/databases/$(database)/documents/teams/$(teamId)).data.memberIds);
+    }
+
+    // --- Users Collection ---
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isProfessor());
+      allow list: if isProfessor();
+
+      // Users can register their own initial profile as 'unassigned' or via professor verification
+      allow create: if isEmailVerified() && request.auth.uid == userId &&
+        isValidId(userId) &&
+        incoming().uid == userId &&
+        incoming().email is string && incoming().email.size() <= 128 &&
+        (incoming().role == 'unassigned' || incoming().role == 'teamMember' || isProfessor()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      // Only professor can assign roles, teams, and sections. Users can only update their own displayName.
+      allow update: if isEmailVerified() && (
+        isProfessor() ||
+        (request.auth.uid == userId &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt']) &&
+         incoming().displayName is string && incoming().displayName.size() <= 100 &&
+         incoming().updatedAt == request.time)
+      );
+
+      allow delete: if isProfessor();
+    }
+
+    // --- Classes Collection ---
+    match /classes/{classId} {
+      allow read: if isSignedIn();
+      allow write: if isProfessor();
+    }
+
+    // --- Sections Collection ---
+    match /sections/{sectionId} {
+      allow read: if isSignedIn();
+      allow write: if isProfessor();
+    }
+
+    // --- Teams Collection ---
+    match /teams/{teamId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create, update, delete: if isProfessor();
+    }
+
+    // --- Weekly Reports Collection ---
+    match /weeklyReports/{reportId} {
+      function isValidReport(data) {
+        return data.classId is string && data.classId.size() <= 64 &&
+          data.sectionId is string && data.sectionId.size() <= 64 &&
+          data.teamId is string && data.teamId.size() <= 64 &&
+          data.week is number && data.week >= 1 && data.week <= 15 &&
+          data.phase is string && data.phase.size() <= 50 &&
+          data.progress is number && data.progress >= 0 && data.progress <= 100 &&
+          data.weeklyResult is string && data.weeklyResult.size() >= 20 && data.weeklyResult.size() <= 5000 &&
+          data.status in ['draft', 'submitted', 'feedbackPending', 'needsRevision', 'approved', 'delayed'];
+      }
+
+      allow get: if isSignedIn() && (isProfessor() || isTeamMember(resource.data.teamId));
+      allow list: if isSignedIn() && (isProfessor() || (resource.data.teamId != null && isTeamMember(resource.data.teamId)));
+
+      // Only team leader can create report for their own team
+      allow create: if isEmailVerified() && isValidId(reportId) &&
+        isValidReport(incoming()) &&
+        isTeamLeader(incoming().teamId) &&
+        incoming().submittedBy == request.auth.uid &&
+        incoming().updatedAt == request.time;
+
+      // Team leader can update report if status is not approved
+      // Professor can update report status anytime
+      allow update: if isEmailVerified() && (
+        isProfessor() ||
+        (
+          isTeamLeader(existing().teamId) &&
+          existing().status != 'approved' &&
+          isValidReport(incoming()) &&
+          incoming().teamId == existing().teamId &&
+          incoming().week == existing().week &&
+          incoming().submittedBy == request.auth.uid &&
+          incoming().updatedAt == request.time
+        )
+      );
+
+      allow delete: if isProfessor();
+    }
+
+    // --- Feedback Collection ---
+    match /feedback/{feedbackId} {
+      allow get: if isSignedIn() && (isProfessor() || isTeamMember(resource.data.teamId));
+      allow list: if isSignedIn() && (isProfessor() || (resource.data.teamId != null && isTeamMember(resource.data.teamId)));
+
+      // Only professors can create, update, or delete feedback
+      allow create: if isProfessor() && isValidId(feedbackId) &&
+        incoming().reportId is string && incoming().reportId.size() <= 128 &&
+        incoming().teamId is string && incoming().teamId.size() <= 64 &&
+        incoming().professorId == request.auth.uid &&
+        incoming().reviewStatus in ['approved', 'needsRevision', 'delayed'] &&
+        incoming().comment is string && incoming().comment.size() <= 3000 &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if isProfessor() &&
+        incoming().professorId == existing().professorId &&
+        incoming().reviewStatus in ['approved', 'needsRevision', 'delayed'] &&
+        incoming().comment is string && incoming().comment.size() <= 3000 &&
+        incoming().updatedAt == request.time;
+
+      allow delete: if isProfessor();
+    }
+
+    // --- Join Requests Collection ---
+    match /joinRequests/{requestId} {
+      allow get: if isSignedIn() && (request.auth.uid == resource.data.userId || isProfessor());
+      allow list: if isSignedIn() && (request.auth.uid == resource.data.userId || isProfessor());
+
+      allow create: if isEmailVerified() &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'pending' &&
+        incoming().createdAt == request.time;
+
+      allow update, delete: if isProfessor();
+    }
+  }
+}

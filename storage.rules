@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Default-deny all uploads and reads
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isPermittedFileType() {
+      return request.resource.contentType.matches('image/jpeg') ||
+             request.resource.contentType.matches('image/png') ||
+             request.resource.contentType.matches('image/webp') ||
+             request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/vnd.ms-powerpoint') ||
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.presentationml.presentation');
+    }
+
+    function isUnder20MB() {
+      return request.resource.size <= 20 * 1024 * 1024;
+    }
+
+    // Evidence files storage path: teams/{teamId}/week_{week}/{fileName}
+    match /teams/{teamId}/week_{week}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() &&
+        isPermittedFileType() &&
+        isUnder20MB() &&
+        !fileName.matches('.*\\.(exe|bat|cmd|sh|bin|msi|vbs|ps1)$');
+    }
+  }
+}

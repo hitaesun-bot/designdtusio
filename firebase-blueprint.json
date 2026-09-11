@@ -1,0 +1,153 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with assigned role and class/team metadata",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 128 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["professor", "teamLeader", "teamMember", "unassigned"] },
+        "classId": { "type": "string", "maxLength": 64 },
+        "sectionId": { "type": "string", "maxLength": 64 },
+        "teamId": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "Class": {
+      "title": "Class",
+      "description": "Course information including semester, department, and join code",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "title": { "type": "string", "maxLength": 100 },
+        "semester": { "type": "string", "maxLength": 50 },
+        "department": { "type": "string", "maxLength": 100 },
+        "professorIds": { "type": "array" },
+        "joinCode": { "type": "string", "maxLength": 32 },
+        "startDate": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "semester", "professorIds", "joinCode"]
+    },
+    "Section": {
+      "title": "Section",
+      "description": "Class sections (e.g., 01분반, 02분반)",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "classId": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "name"]
+    },
+    "Team": {
+      "title": "Team",
+      "description": "Design studio student project team",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "classId": { "type": "string", "maxLength": 64 },
+        "sectionId": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 100 },
+        "leaderId": { "type": "string", "maxLength": 128 },
+        "memberIds": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "sectionId", "name", "leaderId", "memberIds"]
+    },
+    "WeeklyReport": {
+      "title": "WeeklyReport",
+      "description": "Weekly 15-week project progress report submitted by student team leader",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "classId": { "type": "string", "maxLength": 64 },
+        "sectionId": { "type": "string", "maxLength": 64 },
+        "teamId": { "type": "string", "maxLength": 64 },
+        "week": { "type": "number" },
+        "phase": { "type": "string", "maxLength": 50 },
+        "progress": { "type": "number" },
+        "weeklyResult": { "type": "string", "minLength": 20, "maxLength": 5000 },
+        "issue": { "type": "string", "maxLength": 2000 },
+        "noIssue": { "type": "boolean" },
+        "nextAction": { "type": "string", "maxLength": 2000 },
+        "evidenceFiles": { "type": "array" },
+        "evidenceLinks": { "type": "array" },
+        "status": { "type": "string", "enum": ["draft", "submitted", "feedbackPending", "needsRevision", "approved", "delayed"] },
+        "submittedBy": { "type": "string", "maxLength": 128 },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "classId", "teamId", "week", "phase", "progress", "weeklyResult", "status"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "Professor feedback and next week directives on student weekly reports",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "reportId": { "type": "string", "maxLength": 128 },
+        "teamId": { "type": "string", "maxLength": 64 },
+        "professorId": { "type": "string", "maxLength": 128 },
+        "reviewStatus": { "type": "string", "enum": ["approved", "needsRevision", "delayed"] },
+        "comment": { "type": "string", "maxLength": 3000 },
+        "nextTask": { "type": "string", "maxLength": 2000 },
+        "dueDate": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "reportId", "teamId", "professorId", "reviewStatus", "comment"]
+    },
+    "JoinRequest": {
+      "title": "JoinRequest",
+      "description": "Student registration request for studio class",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 128 },
+        "userName": { "type": "string", "maxLength": 100 },
+        "classId": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "classId", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents keyed by Firebase Auth UID"
+    },
+    "/classes/{classId}": {
+      "schema": "Class",
+      "description": "Design studio courses"
+    },
+    "/sections/{sectionId}": {
+      "schema": "Section",
+      "description": "Class sections"
+    },
+    "/teams/{teamId}": {
+      "schema": "Team",
+      "description": "Student project teams"
+    },
+    "/weeklyReports/{reportId}": {
+      "schema": "WeeklyReport",
+      "description": "Weekly reports for each team and week"
+    },
+    "/feedback/{feedbackId}": {
+      "schema": "Feedback",
+      "description": "Professor feedback records"
+    },
+    "/joinRequests/{requestId}": {
+      "schema": "JoinRequest",
+      "description": "Student enrollment join requests"
+    }
+  }
+}
