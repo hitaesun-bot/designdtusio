@@ -18,10 +18,15 @@ import {
   RefreshCw,
   Info,
   ShieldCheck,
+  Edit3,
+  Users,
+  X,
+  UserPlus,
+  Crown,
 } from 'lucide-react';
 
 export const CurrentWeekDashboard: React.FC = () => {
-  const { currentUser, classInfo, activeTeam, reports, feedbacks, saveReport } = useAuth();
+  const { currentUser, classInfo, activeTeam, reports, feedbacks, saveReport, updateTeam } = useAuth();
 
   const currentWeek = classInfo.currentWeek; // 6
   const phase = currentWeek <= 5 ? '탐색·리서치' : currentWeek <= 8 ? '아이디에이션' : currentWeek <= 13 ? '시각화·개발' : '정리·발표';
@@ -53,6 +58,81 @@ export const CurrentWeekDashboard: React.FC = () => {
   const [fileUploadError, setFileUploadError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  // Team edit modal state (for students & team leaders)
+  const [isTeamModalOpen, setIsTeamModalOpen] = useState<boolean>(false);
+  const [editTeamName, setEditTeamName] = useState<string>('');
+  const [editTeamTopic, setEditTeamTopic] = useState<string>('');
+  const [editLeaderName, setEditLeaderName] = useState<string>('');
+  const [editMembers, setEditMembers] = useState<string[]>([]);
+  const [newMemberInput, setNewMemberInput] = useState<string>('');
+
+  const handleOpenTeamModal = () => {
+    if (!activeTeam) return;
+    setEditTeamName(activeTeam.name);
+    setEditTeamTopic(activeTeam.topic || '');
+    setEditLeaderName(activeTeam.leaderName);
+    setEditMembers(
+      activeTeam.memberNames && activeTeam.memberNames.length > 0
+        ? [...activeTeam.memberNames]
+        : [activeTeam.leaderName]
+    );
+    setNewMemberInput('');
+    setIsTeamModalOpen(true);
+  };
+
+  const handleSaveTeamModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeTeam) return;
+    if (!editTeamName.trim()) {
+      alert('팀명을 입력해주세요.');
+      return;
+    }
+
+    const cleanMembers = editMembers.filter((m) => m.trim().length > 0);
+    let finalMembers = [...cleanMembers];
+    if (editLeaderName.trim() && !finalMembers.includes(editLeaderName.trim())) {
+      finalMembers.unshift(editLeaderName.trim());
+    }
+
+    await updateTeam(activeTeam.id, {
+      name: editTeamName.trim(),
+      topic: editTeamTopic.trim(),
+      leaderName: editLeaderName.trim() || activeTeam.leaderName,
+      memberNames: finalMembers,
+    });
+
+    setIsTeamModalOpen(false);
+    setNotification({
+      type: 'success',
+      text: '우리 팀 정보(팀명·프로젝트 주제·팀원 명단)가 성공적으로 저장되었습니다.',
+    });
+  };
+
+  const handleAddMember = () => {
+    const trimmed = newMemberInput.trim();
+    if (!trimmed) return;
+    if (editMembers.includes(trimmed)) {
+      alert('이미 등록된 팀원입니다.');
+      return;
+    }
+    setEditMembers((prev) => [...prev, trimmed]);
+    setNewMemberInput('');
+  };
+
+  const handleRemoveMember = (nameToRemove: string) => {
+    if (editMembers.length <= 1) {
+      alert('최소 1명 이상의 팀원이 등록되어 있어야 합니다.');
+      return;
+    }
+    setEditMembers((prev) => prev.filter((m) => m !== nameToRemove));
+    if (editLeaderName === nameToRemove) {
+      const remaining = editMembers.filter((m) => m !== nameToRemove);
+      if (remaining.length > 0) {
+        setEditLeaderName(remaining[0]);
+      }
+    }
+  };
 
   // Sync state when existingReport changes
   useEffect(() => {
@@ -205,8 +285,8 @@ export const CurrentWeekDashboard: React.FC = () => {
     <div className="space-y-6 max-w-4xl mx-auto pb-16">
       {/* Top Header Card: Current Week & Phase */}
       <div className="bg-white border border-[#D8D4CD] rounded-xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 text-xs font-bold text-[#D65A2F] uppercase tracking-wider mb-1">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-2 text-xs font-bold text-[#D65A2F] uppercase tracking-wider">
             <span>{classInfo.semester}</span>
             <span>·</span>
             <span>15주 팀 프로젝트</span>
@@ -214,9 +294,32 @@ export const CurrentWeekDashboard: React.FC = () => {
           <h2 className="text-2xl font-bold text-[#202020] tracking-tight">
             {currentWeek}주차 · {phase}
           </h2>
-          <p className="text-sm text-stone-600 mt-1">
-            팀명: <strong className="text-[#202020]">{activeTeam.name}</strong> ({activeTeam.sectionName}) · 팀장: {activeTeam.leaderName}
-          </p>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-stone-600 pt-0.5">
+            <span>
+              팀명: <strong className="text-[#202020]">{activeTeam.name}</strong> ({activeTeam.sectionName})
+            </span>
+            <span>·</span>
+            <span className="inline-flex items-center gap-1">
+              <Crown className="w-3.5 h-3.5 text-amber-500" />
+              <span>팀장: <strong className="text-[#202020]">{activeTeam.leaderName}</strong></span>
+            </span>
+            {activeTeam.topic && (
+              <>
+                <span>·</span>
+                <span className="text-stone-500 line-clamp-1 max-w-xs" title={activeTeam.topic}>
+                  주제: {activeTeam.topic}
+                </span>
+              </>
+            )}
+            <button
+              type="button"
+              onClick={handleOpenTeamModal}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#FFF3EC] hover:bg-[#FFE6D9] text-[#D65A2F] border border-[#F0BCA7] rounded-md text-xs font-bold transition-all ml-1 cursor-pointer shadow-2xs"
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>팀 정보·팀원 수정</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -680,6 +783,171 @@ export const CurrentWeekDashboard: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Team Info & Members Edit Modal for Students */}
+      {isTeamModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl border border-[#D8D4CD] shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4 border-b border-[#D8D4CD] flex items-center justify-between bg-[#FAF8F5]">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-[#D65A2F]" />
+                <h3 className="text-base font-bold text-[#202020]">우리 팀 정보 및 팀원 구성 관리</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTeamModalOpen(false)}
+                className="p-1 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveTeamModal} className="p-6 space-y-5">
+              <p className="text-xs text-stone-500">
+                학생들이 직접 팀명, 가구 프로젝트 주제, 팀장 및 팀원 명단을 수정할 수 있습니다. 저장 시 전체 시스템에 즉시 반영됩니다.
+              </p>
+
+              {/* 1. 팀명 */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-stone-700">
+                  팀명 <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTeamName}
+                  onChange={(e) => setEditTeamName(e.target.value)}
+                  placeholder="예: 01반 1팀 (LUMA Studio) 또는 아르코 디자인"
+                  className="w-full p-2.5 text-sm bg-stone-50 border border-[#D8D4CD] rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#D65A2F]"
+                />
+              </div>
+
+              {/* 2. 프로젝트 주제 */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-stone-700">
+                  가구 프로젝트 주제 및 형태
+                </label>
+                <input
+                  type="text"
+                  value={editTeamTopic}
+                  onChange={(e) => setEditTeamTopic(e.target.value)}
+                  placeholder="예: 1인 가구를 위한 모듈형 수납 스툴 시스템"
+                  className="w-full p-2.5 text-sm bg-stone-50 border border-[#D8D4CD] rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#D65A2F]"
+                />
+              </div>
+
+              {/* 3. 팀장 지정 */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-stone-700 flex items-center gap-1.5">
+                  <Crown className="w-3.5 h-3.5 text-amber-500" />
+                  <span>팀장 (주간 보고서 제출 대표자)</span>
+                </label>
+                {editMembers.length > 0 ? (
+                  <select
+                    value={editLeaderName}
+                    onChange={(e) => setEditLeaderName(e.target.value)}
+                    className="w-full p-2.5 text-sm bg-stone-50 border border-[#D8D4CD] rounded-lg focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#D65A2F]"
+                  >
+                    {editMembers.map((name) => (
+                      <option key={name} value={name}>
+                        {name} {name === editLeaderName ? '(현재 팀장)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={editLeaderName}
+                    onChange={(e) => setEditLeaderName(e.target.value)}
+                    className="w-full p-2.5 text-sm bg-stone-50 border border-[#D8D4CD] rounded-lg"
+                  />
+                )}
+                <p className="text-[11px] text-stone-500">
+                  * 팀장으로 지정된 학생에게 주간 진척 보고서 제출 권한이 부여됩니다.
+                </p>
+              </div>
+
+              {/* 4. 팀원 명단 */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-stone-700">
+                  팀원 명단 ({editMembers.length}명)
+                </label>
+
+                {/* Member Chips */}
+                <div className="flex flex-wrap gap-2 p-3 bg-stone-50 rounded-xl border border-[#D8D4CD] min-h-[50px] items-center">
+                  {editMembers.map((member) => {
+                    const isCurrentLeader = member === editLeaderName;
+                    return (
+                      <span
+                        key={member}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                          isCurrentLeader
+                            ? 'bg-amber-100 text-amber-900 border border-amber-300 font-bold'
+                            : 'bg-white text-stone-800 border border-stone-300'
+                        }`}
+                      >
+                        {isCurrentLeader && <Crown className="w-3 h-3 text-amber-600" />}
+                        <span>{member}</span>
+                        {isCurrentLeader && <span className="text-[10px] text-amber-700">(팀장)</span>}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveMember(member)}
+                          className="text-stone-400 hover:text-rose-600 transition-colors ml-0.5 cursor-pointer"
+                          title="팀원에서 제거"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+
+                {/* Add member row */}
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="text"
+                    value={newMemberInput}
+                    onChange={(e) => setNewMemberInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddMember();
+                      }
+                    }}
+                    placeholder="추가할 팀원 학생 이름 (예: 김하늘)"
+                    className="flex-1 p-2 text-xs bg-white border border-[#D8D4CD] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#D65A2F]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddMember}
+                    className="shrink-0 px-3 py-2 bg-stone-800 hover:bg-black text-white rounded-lg text-xs font-bold transition-colors inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>팀원 추가</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#D8D4CD]">
+                <button
+                  type="button"
+                  onClick={() => setIsTeamModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold text-stone-600 hover:bg-stone-100 rounded-lg transition-colors cursor-pointer"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 text-xs font-bold bg-[#D65A2F] hover:bg-[#b84821] text-white rounded-lg transition-colors shadow-xs cursor-pointer"
+                >
+                  수정 내용 저장
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
