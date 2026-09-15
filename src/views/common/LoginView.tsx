@@ -80,24 +80,43 @@ export const LoginView: React.FC<LoginViewProps> = ({ onOpenFirebaseGuide }) => 
             <span>Google 계정으로 로그인</span>
           </button>
 
-          {/* Quick Demo Mode for immediate evaluation */}
+          {/* Quick Demo Mode with separated roles */}
           <div className="relative py-2">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-[#D8D4CD]"></div>
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-white px-2 text-stone-400">또는 바로 체험</span>
+              <span className="bg-white px-2 text-stone-400 font-medium">역할별 바로 접속</span>
             </div>
           </div>
 
-          <button
-            onClick={() => enableDemoMode('professor')}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#202020] text-white rounded-xl text-sm font-bold hover:bg-black transition-colors shadow-2xs cursor-pointer"
-          >
-            <Play className="w-4 h-4 fill-white" />
-            <span>데모 모드로 시작하기</span>
-            <ArrowRight className="w-4 h-4 ml-1" />
-          </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <button
+              onClick={() => enableDemoMode('lumaLeader')}
+              className="flex flex-col items-center justify-center p-3.5 bg-[#FFF8F3] hover:bg-[#FFEFE3] border border-[#F5C9B8] rounded-xl text-left transition-all shadow-2xs cursor-pointer group"
+            >
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#D65A2F]">
+                <Users className="w-4 h-4" />
+                <span>학생으로 접속</span>
+              </div>
+              <span className="text-[11px] text-stone-500 mt-1 text-center">
+                3주차 결과물 등록 & 팀 수정
+              </span>
+            </button>
+
+            <button
+              onClick={() => enableDemoMode('professor')}
+              className="flex flex-col items-center justify-center p-3.5 bg-stone-50 hover:bg-stone-100 border border-stone-300 rounded-xl text-left transition-all shadow-2xs cursor-pointer group"
+            >
+              <div className="flex items-center gap-1.5 text-xs font-bold text-[#202020]">
+                <ShieldCheck className="w-4 h-4 text-rose-700" />
+                <span>교수자로 접속</span>
+              </div>
+              <span className="text-[11px] text-stone-500 mt-1 text-center">
+                16개 팀 모니터링 & 피드백
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* Firebase Config Notice */}

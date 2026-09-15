@@ -22,6 +22,10 @@ export const StatusTag: React.FC<StatusTagProps> = ({ status, className = '', si
       label = '보완 요청';
       colorClasses = 'bg-amber-50 text-amber-900 border-amber-300';
       break;
+    case 'notStarted':
+      label = '작성 대기 (미제출)';
+      colorClasses = 'bg-stone-100 text-stone-600 border-stone-200';
+      break;
     case 'delayed':
       label = '지연 / 미제출';
       colorClasses = 'bg-rose-50 text-rose-800 border-rose-300';

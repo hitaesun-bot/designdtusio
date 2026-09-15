@@ -25,6 +25,9 @@ import {
   Crown,
   ChevronRight,
   Unlock,
+  Share2,
+  Check,
+  Copy,
 } from 'lucide-react';
 
 export const CurrentWeekDashboard: React.FC = () => {
@@ -38,10 +41,13 @@ export const CurrentWeekDashboard: React.FC = () => {
     saveReport,
     updateTeam,
     selectStudentTeam,
+    getRoleUrls,
   } = useAuth();
 
   // Selected week (defaults to classInfo.currentWeek, e.g. 3)
   const [selectedWeek, setSelectedWeek] = useState<number>(() => classInfo.currentWeek || 3);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
+
   const phase =
     selectedWeek <= 5
       ? '탐색·리서치'
@@ -61,8 +67,8 @@ export const CurrentWeekDashboard: React.FC = () => {
     ? feedbacks.find((f) => f.reportId === existingReport.id)
     : undefined;
 
-  // Form states
-  const [progress, setProgress] = useState<number>(existingReport?.progress ?? 50);
+  // Form states - default to 0% progress for all teams at Week 3
+  const [progress, setProgress] = useState<number>(existingReport?.progress ?? 0);
   const [prevWeekProgress, setPrevWeekProgress] = useState<number>(0);
   const [weeklyResult, setWeeklyResult] = useState<string>(existingReport?.weeklyResult ?? '');
   const [issue, setIssue] = useState<string>(existingReport?.issue ?? '');
@@ -170,7 +176,7 @@ export const CurrentWeekDashboard: React.FC = () => {
       setEvidenceFiles(existingReport.evidenceFiles || []);
       setEvidenceLinks(existingReport.evidenceLinks || []);
     } else {
-      setProgress(50);
+      setProgress(0);
       setWeeklyResult('');
       setIssue('');
       setNoIssue(false);
@@ -371,6 +377,48 @@ export const CurrentWeekDashboard: React.FC = () => {
           >
             <Edit3 className="w-3.5 h-3.5" />
             <span>팀명·팀원 수정</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 1.5 Week 3 Active Notice & Student Link Sharing Banner */}
+      <div className="bg-[#FFF9F5] border border-[#F5C9B8] rounded-xl p-4 sm:p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#D65A2F] text-white">
+              📢 현재 3주차 (탐색·리서치) 수업 진행 중
+            </span>
+            <span className="text-xs font-semibold text-stone-600">
+              모든 팀 진도 시작 상태 (0%)
+            </span>
+          </div>
+          <p className="text-xs text-stone-700 leading-relaxed pt-0.5">
+            상단 <strong>[팀명·팀원 수정]</strong> 버튼으로 팀 정보를 정비하고, 하단에 <strong>3주차 탐색·리서치 결과물</strong>(선행사례 분석, 타깃 리서치, 아이디어 스케치 등)을 직접 등록 및 제출할 수 있습니다.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              const url = getRoleUrls().studentUrl;
+              navigator.clipboard.writeText(url);
+              setCopiedLink(true);
+              setTimeout(() => setCopiedLink(false), 2500);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-[#FAF8F5] text-[#202020] border border-[#D8D4CD] rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
+            title="학생 접속용 전용 URL을 클립보드에 복사합니다"
+          >
+            {copiedLink ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-emerald-700">학생 링크 복사됨!</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="w-3.5 h-3.5 text-[#D65A2F]" />
+                <span>학생 제출 링크 복사</span>
+              </>
+            )}
           </button>
         </div>
       </div>

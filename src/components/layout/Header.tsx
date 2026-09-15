@@ -1,6 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { User, LogOut, ShieldCheck, Users, Database, HelpCircle } from 'lucide-react';
+import {
+  User,
+  LogOut,
+  ShieldCheck,
+  Users,
+  Database,
+  HelpCircle,
+  Share2,
+  GraduationCap,
+} from 'lucide-react';
+import { ShareLinksModal } from '../common/ShareLinksModal';
 
 interface HeaderProps {
   onOpenFirebaseGuide: () => void;
@@ -12,9 +22,14 @@ export const Header: React.FC<HeaderProps> = ({ onOpenFirebaseGuide }) => {
     isFirebaseConfigured,
     isDemoMode,
     switchDemoPersona,
+    switchRole,
     logout,
     classInfo,
   } = useAuth();
+
+  const [showLinksModal, setShowLinksModal] = useState<boolean>(false);
+
+  const isProfessor = currentUser?.role === 'professor';
 
   const getRoleBadge = (role?: string) => {
     switch (role) {
@@ -69,7 +84,49 @@ export const Header: React.FC<HeaderProps> = ({ onOpenFirebaseGuide }) => {
         </div>
 
         {/* Right tools and User menu */}
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Share Links Modal Trigger */}
+          <button
+            type="button"
+            onClick={() => setShowLinksModal(true)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-[#FAF8F5] text-[#202020] border border-[#D8D4CD] hover:bg-[#F2ECE4] transition-all shadow-2xs cursor-pointer"
+            title="학생 및 교수자 접속 전용 링크 확인 및 복사"
+          >
+            <Share2 className="w-3.5 h-3.5 text-[#D65A2F]" />
+            <span className="hidden sm:inline">접속 링크 분리 안내</span>
+            <span className="sm:hidden">링크 안내</span>
+          </button>
+
+          {/* Quick Role Switcher Tabs */}
+          <div className="flex items-center bg-[#F5F2EC] p-0.5 rounded-lg border border-[#D8D4CD]">
+            <button
+              type="button"
+              onClick={() => switchRole('student')}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                !isProfessor
+                  ? 'bg-white text-[#D65A2F] shadow-2xs'
+                  : 'text-stone-500 hover:text-stone-800'
+              }`}
+              title="학생 모드로 전환 (3주차 결과물 작성)"
+            >
+              <GraduationCap className="w-3.5 h-3.5" />
+              <span>학생</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => switchRole('professor')}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                isProfessor
+                  ? 'bg-white text-rose-700 shadow-2xs'
+                  : 'text-stone-500 hover:text-stone-800'
+              }`}
+              title="교수자 모드로 전환 (16개 팀 진도 모니터링 및 피드백)"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>교수자</span>
+            </button>
+          </div>
+
           {/* Firebase / Demo mode badge */}
           {isFirebaseConfigured ? (
             <span className="hidden lg:inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 font-medium">
@@ -78,20 +135,19 @@ export const Header: React.FC<HeaderProps> = ({ onOpenFirebaseGuide }) => {
           ) : (
             <button
               onClick={onOpenFirebaseGuide}
-              className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition-colors cursor-pointer"
+              className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition-colors cursor-pointer"
               title="Firebase 연결 가이드 확인"
             >
               <HelpCircle className="w-3.5 h-3.5 text-amber-700" />
-              <span className="hidden sm:inline">Firebase 연결 안내</span>
-              <span className="sm:hidden">연결 안내</span>
+              <span>연결 안내</span>
             </button>
           )}
 
           {/* Persona selector for quick preview & testing */}
           {isDemoMode && (
-            <div className="flex items-center gap-1 bg-[#F5F2EC] p-1 rounded-md border border-[#D8D4CD]">
-              <span className="text-xs font-semibold text-stone-600 pl-1 hidden xl:inline">
-                역할 전환:
+            <div className="hidden xl:flex items-center gap-1 bg-[#F5F2EC] p-1 rounded-md border border-[#D8D4CD]">
+              <span className="text-xs font-semibold text-stone-600 pl-1">
+                상세 역할:
               </span>
               <select
                 aria-label="데모 역할 전환"
@@ -113,13 +169,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenFirebaseGuide }) => {
                 }
                 onChange={(e) => switchDemoPersona(e.target.value)}
               >
+                <option value="lumaLeader">LUMA 팀 (학생)</option>
                 <option value="professor">교수자 (김태선 교수)</option>
-                <option value="lumaLeader">LUMA 팀장 (이지우 - 65% 제출)</option>
-                <option value="lumaMember">LUMA 팀원 (박민재 - 열람 전용)</option>
-                <option value="morrowLeader">Morrow 팀장 (송태윤 - 보완요청)</option>
-                <option value="formLeader">Form&Habit 팀장 (한도현 - 승인)</option>
-                <option value="layerLeader">Layer 팀장 (최서연 - 지연)</option>
-                <option value="unassignedStudent">미배정 학생 (정다은)</option>
+                <option value="morrowLeader">Morrow 팀</option>
+                <option value="formLeader">Form&Habit 팀</option>
+                <option value="layerLeader">Layer 팀</option>
+                <option value="unassignedStudent">미배정 학생</option>
               </select>
             </div>
           )}
@@ -148,6 +203,11 @@ export const Header: React.FC<HeaderProps> = ({ onOpenFirebaseGuide }) => {
           )}
         </div>
       </div>
+
+      <ShareLinksModal
+        isOpen={showLinksModal}
+        onClose={() => setShowLinksModal(false)}
+      />
     </header>
   );
 };

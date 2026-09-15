@@ -67,6 +67,9 @@ interface AuthContextType {
   batchSetup8TeamsPerSection: () => Promise<void>;
   requestJoinClass: (code: string) => Promise<{ success: boolean; message: string }>;
   updateClassInfo: (updates: Partial<ClassInfo>) => Promise<void>;
+  switchRole: (role: 'student' | 'professor', teamId?: string) => void;
+  getRoleUrls: () => { studentUrl: string; professorUrl: string };
+  resetAllProgressToZero: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -79,35 +82,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     try {
-      const saved = localStorage.getItem('ds2_currentUser_v4');
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const hash = window.location.hash;
+        if (params.get('role') === 'professor' || hash.includes('professor')) {
+          return DEMO_USERS.professor;
+        }
+        if (params.get('role') === 'student' || hash.includes('student')) {
+          return DEMO_USERS.lumaLeader;
+        }
+      }
+      const saved = localStorage.getItem('ds2_currentUser_v6');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.uid) return parsed;
       }
     } catch {}
-    return DEMO_USERS.professor;
+    // Default to student view for easy student access
+    return DEMO_USERS.lumaLeader;
   });
 
   // App Data State
   const [classInfo, setClassInfo] = useState<ClassInfo>(() => {
     try {
-      const saved = localStorage.getItem('ds2_classInfo_v4');
+      const saved = localStorage.getItem('ds2_classInfo_v6');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed.currentWeek === 'number') {
-          // If saved was from older week, ensure it uses week 3 as default
-          return { ...parsed, currentWeek: parsed.currentWeek || 3 };
+        if (parsed) {
+          return { ...parsed, currentWeek: 3 };
         }
       }
     } catch {}
-    return INITIAL_CLASS;
+    return { ...INITIAL_CLASS, currentWeek: 3 };
   });
 
   const [sections, setSections] = useState<Section[]>(INITIAL_SECTIONS);
 
   const [teams, setTeams] = useState<Team[]>(() => {
     try {
-      const saved = localStorage.getItem('ds2_teams_v4') || localStorage.getItem('ds2_teams_v3');
+      const saved = localStorage.getItem('ds2_teams_w3_v6');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -118,10 +131,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [reports, setReports] = useState<WeeklyReport[]>(() => {
     try {
-      const saved = localStorage.getItem('ds2_reports_v4');
+      const saved = localStorage.getItem('ds2_reports_w3_clean_v6');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch {}
     return INITIAL_REPORTS;
@@ -129,10 +142,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [feedbacks, setFeedbacks] = useState<Feedback[]>(() => {
     try {
-      const saved = localStorage.getItem('ds2_feedbacks_v4');
+      const saved = localStorage.getItem('ds2_feedbacks_w3_clean_v6');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch {}
     return INITIAL_FEEDBACKS;
@@ -141,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [allUsers, setAllUsers] = useState<Record<string, UserProfile>>(DEMO_USERS);
   const [curriculum, setCurriculum] = useState<WeeklyCurriculum[]>(() => {
     try {
-      const saved = localStorage.getItem('ds2_curriculum_v2');
+      const saved = localStorage.getItem('ds2_curriculum_v3');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -153,39 +166,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Local storage synchronization effects
   useEffect(() => {
     try {
-      localStorage.setItem('ds2_teams_v4', JSON.stringify(teams));
+      localStorage.setItem('ds2_teams_w3_v6', JSON.stringify(teams));
     } catch {}
   }, [teams]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('ds2_reports_v4', JSON.stringify(reports));
+      localStorage.setItem('ds2_reports_w3_clean_v6', JSON.stringify(reports));
     } catch {}
   }, [reports]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('ds2_feedbacks_v4', JSON.stringify(feedbacks));
+      localStorage.setItem('ds2_feedbacks_w3_clean_v6', JSON.stringify(feedbacks));
     } catch {}
   }, [feedbacks]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('ds2_classInfo_v4', JSON.stringify(classInfo));
+      localStorage.setItem('ds2_classInfo_v6', JSON.stringify(classInfo));
     } catch {}
   }, [classInfo]);
 
   useEffect(() => {
     try {
       if (currentUser) {
-        localStorage.setItem('ds2_currentUser_v4', JSON.stringify(currentUser));
+        localStorage.setItem('ds2_currentUser_v6', JSON.stringify(currentUser));
       }
     } catch {}
   }, [currentUser]);
 
   useEffect(() => {
     try {
-      localStorage.setItem('ds2_curriculum_v2', JSON.stringify(curriculum));
+      localStorage.setItem('ds2_curriculum_v3', JSON.stringify(curriculum));
     } catch {}
   }, [curriculum]);
 
@@ -367,8 +380,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setCurrentUser(userProfile);
     try {
-      localStorage.setItem('ds2_currentUser_v4', JSON.stringify(userProfile));
+      localStorage.setItem('ds2_currentUser_v6', JSON.stringify(userProfile));
     } catch {}
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('role', 'student');
+      window.history.replaceState(null, '', url.toString());
+    }
   };
 
   // Compute active team for current student (defaults to first team so screen is never blank)
@@ -474,7 +492,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           next = [...prev, updatedReport];
         }
         try {
-          localStorage.setItem('ds2_reports_v4', JSON.stringify(next));
+          localStorage.setItem('ds2_reports_w3_clean_v6', JSON.stringify(next));
         } catch {}
         return next;
       });
@@ -623,7 +641,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return updated;
       });
       try {
-        localStorage.setItem('ds2_teams_v4', JSON.stringify(nextTeams));
+        localStorage.setItem('ds2_teams_w3_v6', JSON.stringify(nextTeams));
       } catch {}
       return nextTeams;
     });
@@ -633,7 +651,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setReports((prev) => {
         const next = prev.map((r) => (r.teamId === teamId ? { ...r, teamName: updates.name! } : r));
         try {
-          localStorage.setItem('ds2_reports_v4', JSON.stringify(next));
+          localStorage.setItem('ds2_reports_w3_clean_v6', JSON.stringify(next));
         } catch {}
         return next;
       });
@@ -787,6 +805,92 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Switch Role between student and professor
+  const switchRole = useCallback((role: 'student' | 'professor', teamId?: string) => {
+    if (role === 'student') {
+      const targetTeam = teamId ? teams.find((t) => t.id === teamId) : (activeTeam || teams[0]);
+      const studentProfile: UserProfile = {
+        uid: targetTeam ? `student-${targetTeam.id}` : 'user-luma-leader',
+        email: `${targetTeam?.id || 'luma'}@student.ac.kr`,
+        displayName: targetTeam?.leaderName || '학생',
+        role: 'teamLeader',
+        classId: classInfo.id,
+        sectionId: targetTeam?.sectionId || 'sec-01',
+        teamId: targetTeam?.id || 'team-luma',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setCurrentUser(studentProfile);
+      try {
+        localStorage.setItem('ds2_currentUser_v6', JSON.stringify(studentProfile));
+      } catch {}
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('role', 'student');
+        window.history.replaceState(null, '', url.toString());
+      }
+    } else {
+      setCurrentUser(DEMO_USERS.professor);
+      try {
+        localStorage.setItem('ds2_currentUser_v6', JSON.stringify(DEMO_USERS.professor));
+      } catch {}
+      if (typeof window !== 'undefined') {
+        const url = new URL(window.location.href);
+        url.searchParams.set('role', 'professor');
+        window.history.replaceState(null, '', url.toString());
+      }
+    }
+  }, [teams, activeTeam, classInfo.id]);
+
+  // Compute URLs for sharing
+  const getRoleUrls = useCallback(() => {
+    if (typeof window === 'undefined') {
+      return {
+        studentUrl: 'https://designdtusio-git-main-hitaesun-1542s-projects.vercel.app/?role=student',
+        professorUrl: 'https://designdtusio-git-main-hitaesun-1542s-projects.vercel.app/?role=professor',
+      };
+    }
+    const origin = window.location.origin;
+    const pathname = window.location.pathname;
+    return {
+      studentUrl: `${origin}${pathname}?role=student`,
+      professorUrl: `${origin}${pathname}?role=professor`,
+    };
+  }, []);
+
+  // Reset all progress to 0% and clear reports
+  const resetAllProgressToZero = async () => {
+    setReports([]);
+    setFeedbacks([]);
+    try {
+      localStorage.setItem('ds2_reports_w3_clean_v6', JSON.stringify([]));
+      localStorage.setItem('ds2_feedbacks_w3_clean_v6', JSON.stringify([]));
+    } catch {}
+  };
+
+  // Sync role from URL parameters on mount & popstate
+  useEffect(() => {
+    const handleUrlRole = () => {
+      if (typeof window === 'undefined') return;
+      const params = new URLSearchParams(window.location.search);
+      const hash = window.location.hash;
+      const roleParam = params.get('role');
+      if (roleParam === 'student' || hash.includes('student')) {
+        if (currentUser?.role === 'professor') {
+          switchRole('student');
+        }
+      } else if (roleParam === 'professor' || hash.includes('professor')) {
+        if (currentUser?.role !== 'professor') {
+          switchRole('professor');
+        }
+      }
+    };
+
+    handleUrlRole();
+    window.addEventListener('popstate', handleUrlRole);
+    return () => window.removeEventListener('popstate', handleUrlRole);
+  }, [currentUser?.role, switchRole]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -819,6 +923,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         batchSetup8TeamsPerSection,
         requestJoinClass,
         updateClassInfo,
+        switchRole,
+        getRoleUrls,
+        resetAllProgressToZero,
       }}
     >
       {children}

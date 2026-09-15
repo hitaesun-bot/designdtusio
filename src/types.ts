@@ -3,6 +3,7 @@ export type UserRole = 'professor' | 'teamLeader' | 'teamMember' | 'unassigned';
 export type ProjectPhase = '탐색·리서치' | '아이디에이션' | '시각화·개발' | '정리·발표';
 
 export type ReportStatus =
+  | 'notStarted'
   | 'draft'
   | 'submitted'
   | 'feedbackPending'
