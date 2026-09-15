@@ -55,6 +55,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   enableDemoMode: (personaKey?: string) => void;
   switchDemoPersona: (personaKey: string) => void;
+  selectStudentTeam: (teamId: string, studentName?: string) => void;
   saveReport: (report: Partial<WeeklyReport>, isSubmit: boolean) => Promise<{ success: boolean; message: string; reportId?: string }>;
   submitFeedback: (feedback: Omit<Feedback, 'id' | 'createdAt' | 'updatedAt'>) => Promise<{ success: boolean; message: string }>;
   createTeam: (teamData: { name: string; sectionId: string; leaderId: string; memberIds: string[]; topic?: string }) => Promise<void>;
@@ -76,14 +77,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(DEMO_USERS.professor);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    try {
+      const saved = localStorage.getItem('ds2_currentUser_v4');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.uid) return parsed;
+      }
+    } catch {}
+    return DEMO_USERS.professor;
+  });
 
   // App Data State
-  const [classInfo, setClassInfo] = useState<ClassInfo>(INITIAL_CLASS);
+  const [classInfo, setClassInfo] = useState<ClassInfo>(() => {
+    try {
+      const saved = localStorage.getItem('ds2_classInfo_v4');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed.currentWeek === 'number') {
+          // If saved was from older week, ensure it uses week 3 as default
+          return { ...parsed, currentWeek: parsed.currentWeek || 3 };
+        }
+      }
+    } catch {}
+    return INITIAL_CLASS;
+  });
+
   const [sections, setSections] = useState<Section[]>(INITIAL_SECTIONS);
+
   const [teams, setTeams] = useState<Team[]>(() => {
     try {
-      const saved = localStorage.getItem('ds2_teams_v3');
+      const saved = localStorage.getItem('ds2_teams_v4') || localStorage.getItem('ds2_teams_v3');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -91,8 +115,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {}
     return INITIAL_TEAMS;
   });
-  const [reports, setReports] = useState<WeeklyReport[]>(INITIAL_REPORTS);
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>(INITIAL_FEEDBACKS);
+
+  const [reports, setReports] = useState<WeeklyReport[]>(() => {
+    try {
+      const saved = localStorage.getItem('ds2_reports_v4');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_REPORTS;
+  });
+
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>(() => {
+    try {
+      const saved = localStorage.getItem('ds2_feedbacks_v4');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_FEEDBACKS;
+  });
+
   const [allUsers, setAllUsers] = useState<Record<string, UserProfile>>(DEMO_USERS);
   const [curriculum, setCurriculum] = useState<WeeklyCurriculum[]>(() => {
     try {
@@ -105,11 +150,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return DEFAULT_CURRICULUM;
   });
 
+  // Local storage synchronization effects
   useEffect(() => {
     try {
-      localStorage.setItem('ds2_teams_v3', JSON.stringify(teams));
+      localStorage.setItem('ds2_teams_v4', JSON.stringify(teams));
     } catch {}
   }, [teams]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ds2_reports_v4', JSON.stringify(reports));
+    } catch {}
+  }, [reports]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ds2_feedbacks_v4', JSON.stringify(feedbacks));
+    } catch {}
+  }, [feedbacks]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ds2_classInfo_v4', JSON.stringify(classInfo));
+    } catch {}
+  }, [classInfo]);
+
+  useEffect(() => {
+    try {
+      if (currentUser) {
+        localStorage.setItem('ds2_currentUser_v4', JSON.stringify(currentUser));
+      }
+    } catch {}
+  }, [currentUser]);
 
   useEffect(() => {
     try {
@@ -276,23 +348,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Compute active team for current student
+  // Select team for student
+  const selectStudentTeam = (teamId: string, studentName?: string) => {
+    const targetTeam = teams.find((t) => t.id === teamId);
+    if (!targetTeam) return;
+
+    const userProfile: UserProfile = {
+      uid: `student-${targetTeam.id}`,
+      email: `${targetTeam.id}@student.ac.kr`,
+      displayName: studentName || targetTeam.leaderName || `${targetTeam.name} 학생`,
+      role: 'teamLeader',
+      classId: targetTeam.classId,
+      sectionId: targetTeam.sectionId,
+      teamId: targetTeam.id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setCurrentUser(userProfile);
+    try {
+      localStorage.setItem('ds2_currentUser_v4', JSON.stringify(userProfile));
+    } catch {}
+  };
+
+  // Compute active team for current student (defaults to first team so screen is never blank)
   const activeTeam = currentUser?.teamId
-    ? teams.find((t) => t.id === currentUser.teamId) || null
-    : null;
+    ? teams.find((t) => t.id === currentUser.teamId) || teams[0] || null
+    : teams[0] || null;
 
   // Save or submit weekly report
   const saveReport = useCallback(
     async (
-      reportData: Partial<WeeklyReport>,
+      reportData: Partial<WeeklyReport> & { forceEdit?: boolean },
       isSubmit: boolean
     ): Promise<{ success: boolean; message: string; reportId?: string }> => {
       if (!currentUser) {
         return { success: false, message: '로그인이 필요합니다.' };
       }
 
-      // Authorization check: only teamLeader can submit/edit
-      const targetTeamId = reportData.teamId || currentUser.teamId;
+      // Find target team: from reportData, currentUser, or fallback to active team
+      const targetTeamId = reportData.teamId || currentUser.teamId || teams[0]?.id;
       if (!targetTeamId) {
         return { success: false, message: '배정된 팀이 없습니다.' };
       }
@@ -302,17 +397,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, message: '해당 팀을 찾을 수 없습니다.' };
       }
 
-      if (currentUser.role !== 'professor' && team.leaderId !== currentUser.uid) {
-        return { success: false, message: '보고서 작성 및 제출 권한은 팀장에게만 있습니다.' };
+      // Unassigned role check
+      if (currentUser.role === 'unassigned') {
+        return { success: false, message: '팀을 먼저 선택해주세요.' };
       }
 
       const targetWeek = reportData.week || classInfo.currentWeek;
       const existingReport = reports.find((r) => r.teamId === targetTeamId && r.week === targetWeek);
-
-      // Check immutability: approved reports cannot be edited
-      if (existingReport && existingReport.status === 'approved' && currentUser.role !== 'professor') {
-        return { success: false, message: '교수자가 승인한 보고서는 수정할 수 없습니다.' };
-      }
 
       // Validate required fields on submission
       if (isSubmit) {
@@ -357,26 +448,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // In Live Firebase mode
       if (isFirebaseConfigured && !isDemoMode) {
-        const { db } = getFirebaseInstances();
-        if (db) {
-          const docRef = doc(db, 'weeklyReports', reportId);
-          await setDoc(docRef, {
-            ...updatedReport,
-            updatedAt: serverTimestamp(),
-            ...(isSubmit ? { submittedAt: serverTimestamp() } : {}),
-          }, { merge: true });
+        try {
+          const { db } = getFirebaseInstances();
+          if (db) {
+            const docRef = doc(db, 'weeklyReports', reportId);
+            await setDoc(docRef, {
+              ...updatedReport,
+              updatedAt: serverTimestamp(),
+              ...(isSubmit ? { submittedAt: serverTimestamp() } : {}),
+            }, { merge: true });
+          }
+        } catch (err) {
+          console.warn('Firestore report write error:', err);
         }
       }
 
-      // Update local state
+      // Update local state and localStorage
       setReports((prev) => {
         const index = prev.findIndex((r) => r.id === reportId);
+        let next: WeeklyReport[];
         if (index >= 0) {
-          const copy = [...prev];
-          copy[index] = updatedReport;
-          return copy;
+          next = [...prev];
+          next[index] = updatedReport;
+        } else {
+          next = [...prev, updatedReport];
         }
-        return [...prev, updatedReport];
+        try {
+          localStorage.setItem('ds2_reports_v4', JSON.stringify(next));
+        } catch {}
+        return next;
       });
 
       return {
@@ -509,8 +609,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Update team
   const updateTeam = async (teamId: string, updates: Partial<Team>) => {
-    setTeams((prev) =>
-      prev.map((t) => {
+    let updatedTeam: Team | null = null;
+    setTeams((prev) => {
+      const nextTeams = prev.map((t) => {
         if (t.id !== teamId) return t;
         const updated = { ...t, ...updates, updatedAt: new Date().toISOString() };
         // If sectionId updated, also update sectionName
@@ -518,9 +619,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const sec = sections.find((s) => s.id === updates.sectionId);
           if (sec) updated.sectionName = sec.name;
         }
+        updatedTeam = updated;
         return updated;
-      })
-    );
+      });
+      try {
+        localStorage.setItem('ds2_teams_v4', JSON.stringify(nextTeams));
+      } catch {}
+      return nextTeams;
+    });
+
+    // Update teamName across reports if renamed
+    if (updates.name) {
+      setReports((prev) => {
+        const next = prev.map((r) => (r.teamId === teamId ? { ...r, teamName: updates.name! } : r));
+        try {
+          localStorage.setItem('ds2_reports_v4', JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+    }
+
+    // In Live Firebase mode, sync to Firestore
+    if (isFirebaseConfigured && !isDemoMode) {
+      try {
+        const { db } = getFirebaseInstances();
+        if (db && updatedTeam) {
+          const docRef = doc(db, 'teams', teamId);
+          await setDoc(docRef, updatedTeam, { merge: true });
+        }
+      } catch (err) {
+        console.warn('Firestore updateTeam error:', err);
+      }
+    }
   };
 
   // Delete team
@@ -636,7 +766,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Update class info
   const updateClassInfo = async (updates: Partial<ClassInfo>) => {
-    setClassInfo((prev) => ({ ...prev, ...updates }));
+    setClassInfo((prev) => {
+      const next = { ...prev, ...updates };
+      try {
+        localStorage.setItem('ds2_classInfo_v4', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+
+    if (isFirebaseConfigured && !isDemoMode) {
+      try {
+        const { db } = getFirebaseInstances();
+        if (db) {
+          const docRef = doc(db, 'classes', classInfo.id);
+          await setDoc(docRef, updates, { merge: true });
+        }
+      } catch (err) {
+        console.warn('Firestore updateClassInfo error:', err);
+      }
+    }
   };
 
   return (
@@ -659,6 +807,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         enableDemoMode,
         switchDemoPersona,
+        selectStudentTeam,
         saveReport,
         submitFeedback,
         createTeam,

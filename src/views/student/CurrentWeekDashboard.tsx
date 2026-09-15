@@ -23,17 +23,37 @@ import {
   X,
   UserPlus,
   Crown,
+  ChevronRight,
+  Unlock,
 } from 'lucide-react';
 
 export const CurrentWeekDashboard: React.FC = () => {
-  const { currentUser, classInfo, activeTeam, reports, feedbacks, saveReport, updateTeam } = useAuth();
+  const {
+    currentUser,
+    classInfo,
+    activeTeam,
+    teams,
+    reports,
+    feedbacks,
+    saveReport,
+    updateTeam,
+    selectStudentTeam,
+  } = useAuth();
 
-  const currentWeek = classInfo.currentWeek; // 6
-  const phase = currentWeek <= 5 ? '탐색·리서치' : currentWeek <= 8 ? '아이디에이션' : currentWeek <= 13 ? '시각화·개발' : '정리·발표';
+  // Selected week (defaults to classInfo.currentWeek, e.g. 3)
+  const [selectedWeek, setSelectedWeek] = useState<number>(() => classInfo.currentWeek || 3);
+  const phase =
+    selectedWeek <= 5
+      ? '탐색·리서치'
+      : selectedWeek <= 8
+      ? '아이디에이션'
+      : selectedWeek <= 13
+      ? '시각화·개발'
+      : '정리·발표';
 
   // Find existing report for this team and week
   const existingReport = activeTeam
-    ? reports.find((r) => r.teamId === activeTeam.id && r.week === currentWeek)
+    ? reports.find((r) => r.teamId === activeTeam.id && r.week === selectedWeek)
     : undefined;
 
   // Find feedback for this report
@@ -58,6 +78,7 @@ export const CurrentWeekDashboard: React.FC = () => {
   const [fileUploadError, setFileUploadError] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isForceEditUnlocked, setIsForceEditUnlocked] = useState<boolean>(false);
 
   // Team edit modal state (for students & team leaders)
   const [isTeamModalOpen, setIsTeamModalOpen] = useState<boolean>(false);
@@ -66,6 +87,7 @@ export const CurrentWeekDashboard: React.FC = () => {
   const [editLeaderName, setEditLeaderName] = useState<string>('');
   const [editMembers, setEditMembers] = useState<string[]>([]);
   const [newMemberInput, setNewMemberInput] = useState<string>('');
+  const [teamModalError, setTeamModalError] = useState<string | null>(null);
 
   const handleOpenTeamModal = () => {
     if (!activeTeam) return;
@@ -78,6 +100,7 @@ export const CurrentWeekDashboard: React.FC = () => {
         : [activeTeam.leaderName]
     );
     setNewMemberInput('');
+    setTeamModalError(null);
     setIsTeamModalOpen(true);
   };
 
@@ -85,7 +108,7 @@ export const CurrentWeekDashboard: React.FC = () => {
     e.preventDefault();
     if (!activeTeam) return;
     if (!editTeamName.trim()) {
-      alert('팀명을 입력해주세요.');
+      setTeamModalError('팀명을 입력해주세요.');
       return;
     }
 
@@ -113,16 +136,17 @@ export const CurrentWeekDashboard: React.FC = () => {
     const trimmed = newMemberInput.trim();
     if (!trimmed) return;
     if (editMembers.includes(trimmed)) {
-      alert('이미 등록된 팀원입니다.');
+      setTeamModalError('이미 등록된 팀원입니다.');
       return;
     }
     setEditMembers((prev) => [...prev, trimmed]);
     setNewMemberInput('');
+    setTeamModalError(null);
   };
 
   const handleRemoveMember = (nameToRemove: string) => {
     if (editMembers.length <= 1) {
-      alert('최소 1명 이상의 팀원이 등록되어 있어야 합니다.');
+      setTeamModalError('최소 1명 이상의 팀원이 등록되어 있어야 합니다.');
       return;
     }
     setEditMembers((prev) => prev.filter((m) => m !== nameToRemove));
@@ -132,9 +156,10 @@ export const CurrentWeekDashboard: React.FC = () => {
         setEditLeaderName(remaining[0]);
       }
     }
+    setTeamModalError(null);
   };
 
-  // Sync state when existingReport changes
+  // Sync state when existingReport or selectedWeek changes
   useEffect(() => {
     if (existingReport) {
       setProgress(existingReport.progress);
@@ -144,23 +169,33 @@ export const CurrentWeekDashboard: React.FC = () => {
       setNextAction(existingReport.nextAction);
       setEvidenceFiles(existingReport.evidenceFiles || []);
       setEvidenceLinks(existingReport.evidenceLinks || []);
+    } else {
+      setProgress(50);
+      setWeeklyResult('');
+      setIssue('');
+      setNoIssue(false);
+      setNextAction('');
+      setEvidenceFiles([]);
+      setEvidenceLinks([]);
     }
 
-    // Check previous week (e.g. week 5) progress
+    // Check previous week progress
     if (activeTeam) {
-      const prevReport = reports.find((r) => r.teamId === activeTeam.id && r.week === currentWeek - 1);
+      const prevReport = reports.find((r) => r.teamId === activeTeam.id && r.week === selectedWeek - 1);
       if (prevReport) {
         setPrevWeekProgress(prevReport.progress);
+      } else {
+        setPrevWeekProgress(0);
       }
     }
-  }, [existingReport, activeTeam, reports, currentWeek]);
+  }, [existingReport, activeTeam, reports, selectedWeek]);
 
-  // Is current user leader?
-  const isLeader = activeTeam && currentUser && activeTeam.leaderId === currentUser.uid;
+  // Is editing allowed
   const isApproved = existingReport?.status === 'approved';
   const isNeedsRevision = existingReport?.status === 'needsRevision';
   const isFeedbackPending = existingReport?.status === 'feedbackPending';
-  const isReadOnly = !isLeader || isApproved;
+  // Read-only only if approved and user has not clicked unlock
+  const isReadOnly = isApproved && !isForceEditUnlocked;
 
   // Add evidence link
   const handleAddLink = () => {
@@ -208,7 +243,6 @@ export const CurrentWeekDashboard: React.FC = () => {
         return;
       }
 
-      // Generate local preview URL or simulate cloud storage entry
       const newFile: EvidenceFile = {
         id: `file-${Date.now()}-${i}`,
         name: file.name,
@@ -232,20 +266,12 @@ export const CurrentWeekDashboard: React.FC = () => {
   const handleSave = async (isSubmit: boolean) => {
     if (!activeTeam) return;
 
-    // Confirmation if progress is less than previous week
-    if (isSubmit && progress < prevWeekProgress) {
-      const confirmDecrease = window.confirm(
-        `현재 진행률(${progress}%)이 이전 주차(${prevWeekProgress}%)보다 낮습니다. 계속 진행하시겠습니까?`
-      );
-      if (!confirmDecrease) return;
-    }
-
     setIsSubmitting(true);
     setNotification(null);
 
     const result = await saveReport(
       {
-        week: currentWeek,
+        week: selectedWeek,
         phase,
         progress,
         weeklyResult,
@@ -254,6 +280,7 @@ export const CurrentWeekDashboard: React.FC = () => {
         nextAction,
         evidenceFiles,
         evidenceLinks,
+        forceEdit: isForceEditUnlocked,
       },
       isSubmit
     );
@@ -262,7 +289,7 @@ export const CurrentWeekDashboard: React.FC = () => {
 
     if (result.success) {
       setNotification({ type: 'success', text: result.message });
-      // Scroll to top
+      setIsForceEditUnlocked(false);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       setNotification({ type: 'error', text: result.message });
@@ -283,16 +310,136 @@ export const CurrentWeekDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-16">
-      {/* Top Header Card: Current Week & Phase */}
+      {/* 1. Team Switcher & Quick Selector for Students */}
+      <div className="bg-[#FAF8F5] border border-[#D8D4CD] rounded-xl p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-[#202020] text-white flex items-center justify-center font-bold text-sm shadow-xs flex-shrink-0">
+            {activeTeam.sectionName?.replace('반', '') || '01'}
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-[#D65A2F] uppercase">내 소속 팀</span>
+              <span className="text-xs text-stone-400">·</span>
+              <span className="text-xs text-stone-500 font-medium">자유롭게 소속 팀을 선택하여 보고서를 작성할 수 있습니다</span>
+            </div>
+            <div className="flex items-center gap-2 mt-0.5">
+              <h2 className="text-base sm:text-lg font-extrabold text-[#202020]">
+                {activeTeam.name}
+              </h2>
+              <span className="text-xs px-2 py-0.5 rounded bg-stone-200 text-stone-700 font-semibold">
+                {activeTeam.sectionName}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <label htmlFor="team-select" className="sr-only">
+            팀 선택
+          </label>
+          <select
+            id="team-select"
+            aria-label="팀 선택"
+            value={activeTeam.id}
+            onChange={(e) => selectStudentTeam(e.target.value)}
+            className="bg-white border border-[#D8D4CD] rounded-lg px-3 py-2 text-xs font-bold text-[#202020] shadow-2xs focus:outline-none focus:ring-2 focus:ring-[#D65A2F] cursor-pointer"
+          >
+            <optgroup label="01반 (8팀)">
+              {teams
+                .filter((t) => t.sectionId === 'sec-01')
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} (팀장: {t.leaderName})
+                  </option>
+                ))}
+            </optgroup>
+            <optgroup label="02반 (8팀)">
+              {teams
+                .filter((t) => t.sectionId === 'sec-02')
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} (팀장: {t.leaderName})
+                  </option>
+                ))}
+            </optgroup>
+          </select>
+
+          <button
+            type="button"
+            onClick={handleOpenTeamModal}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-stone-50 text-[#D65A2F] border border-[#F0BCA7] rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+            <span>팀명·팀원 수정</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 2. Week Navigation Pills */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between text-xs text-stone-500 font-medium px-1">
+          <span>주차별 보고서 선택 (현재 {classInfo.currentWeek}주차 진행 중):</span>
+          <span className="font-bold text-[#D65A2F]">
+            {selectedWeek}주차 · {phase}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-thin">
+          {Array.from({ length: 15 }, (_, i) => i + 1).map((w) => {
+            const isCurrent = w === classInfo.currentWeek;
+            const isSelected = w === selectedWeek;
+            const weekReport = reports.find((r) => r.teamId === activeTeam.id && r.week === w);
+            return (
+              <button
+                key={w}
+                type="button"
+                onClick={() => {
+                  setSelectedWeek(w);
+                  setIsForceEditUnlocked(false);
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#202020] text-white shadow-xs'
+                    : isCurrent
+                    ? 'bg-[#FFF3EC] text-[#D65A2F] border border-[#F0BCA7] hover:bg-[#FFE6D9]'
+                    : 'bg-white text-stone-600 border border-[#D8D4CD] hover:bg-stone-50'
+                }`}
+              >
+                <span>{w}주차</span>
+                {isCurrent && (
+                  <span className={`text-[10px] px-1 py-0.2 rounded ${isSelected ? 'bg-[#D65A2F] text-white' : 'bg-[#D65A2F] text-white'}`}>
+                    현재
+                  </span>
+                )}
+                {weekReport && !isSelected && (
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      weekReport.status === 'approved'
+                        ? 'bg-emerald-500'
+                        : weekReport.status === 'needsRevision'
+                        ? 'bg-amber-500'
+                        : weekReport.status === 'feedbackPending'
+                        ? 'bg-sky-500'
+                        : 'bg-stone-300'
+                    }`}
+                    title={weekReport.status}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3. Header Card: Current Week & Phase Summary */}
       <div className="bg-white border border-[#D8D4CD] rounded-xl p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-2 text-xs font-bold text-[#D65A2F] uppercase tracking-wider">
             <span>{classInfo.semester}</span>
             <span>·</span>
-            <span>15주 팀 프로젝트</span>
+            <span>15주 가구디자인스튜디오(2)</span>
           </div>
           <h2 className="text-2xl font-bold text-[#202020] tracking-tight">
-            {currentWeek}주차 · {phase}
+            {selectedWeek}주차 주간 보고서 · {phase}
           </h2>
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-stone-600 pt-0.5">
             <span>
@@ -311,14 +458,14 @@ export const CurrentWeekDashboard: React.FC = () => {
                 </span>
               </>
             )}
-            <button
-              type="button"
-              onClick={handleOpenTeamModal}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#FFF3EC] hover:bg-[#FFE6D9] text-[#D65A2F] border border-[#F0BCA7] rounded-md text-xs font-bold transition-all ml-1 cursor-pointer shadow-2xs"
-            >
-              <Edit3 className="w-3.5 h-3.5" />
-              <span>팀 정보·팀원 수정</span>
-            </button>
+            {activeTeam.memberNames && activeTeam.memberNames.length > 0 && (
+              <>
+                <span>·</span>
+                <span className="text-stone-500 text-xs">
+                  팀원: {activeTeam.memberNames.join(', ')}
+                </span>
+              </>
+            )}
           </div>
         </div>
 
@@ -329,10 +476,15 @@ export const CurrentWeekDashboard: React.FC = () => {
               <StatusTag status={existingReport.status} size="lg" />
             </div>
           )}
-          {!isLeader && (
-            <div className="px-3 py-1.5 rounded bg-stone-100 border border-stone-300 text-xs text-stone-600 font-medium">
-              열람 전용 (팀원 권한)
-            </div>
+          {isApproved && (
+            <button
+              type="button"
+              onClick={() => setIsForceEditUnlocked((prev) => !prev)}
+              className="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-300 text-xs font-bold text-amber-900 hover:bg-amber-100 transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            >
+              <Unlock className="w-3.5 h-3.5 text-amber-700" />
+              <span>{isForceEditUnlocked ? '편집 잠금' : '내용 수정하기'}</span>
+            </button>
           )}
         </div>
       </div>
@@ -411,7 +563,7 @@ export const CurrentWeekDashboard: React.FC = () => {
             )}
           </div>
 
-          {isNeedsRevision && isLeader && (
+          {isNeedsRevision && (
             <div className="pt-2 text-xs font-medium text-amber-900">
               ※ 교수자의 보완 요청에 따라 내용을 수정한 뒤 하단의 <strong>[보완 후 재제출]</strong> 버튼을 눌러주세요.
             </div>
@@ -738,49 +890,55 @@ export const CurrentWeekDashboard: React.FC = () => {
             )}
           </div>
 
-          {isLeader ? (
-            isApproved ? (
-              <div className="flex items-center gap-2 text-emerald-800 text-sm font-bold bg-emerald-50 px-4 py-2.5 rounded-lg border border-emerald-300">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>교수자 승인이 완료된 보고서입니다. (수정 불가)</span>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            {isApproved && !isForceEditUnlocked ? (
+              <div className="flex flex-col sm:flex-row items-center gap-2">
+                <div className="flex items-center gap-2 text-emerald-800 text-xs font-bold bg-emerald-50 px-3.5 py-2 rounded-lg border border-emerald-300">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span>교수자 승인 완료됨</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsForceEditUnlocked(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                >
+                  <Unlock className="w-3.5 h-3.5 text-amber-700" />
+                  <span>내용 수정하기 (편집 활성화)</span>
+                </button>
               </div>
             ) : (
-              <div className="flex items-center gap-3 w-full sm:w-auto">
+              <>
                 <button
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleSave(false)}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-md border border-[#D8D4CD] bg-white text-stone-700 text-sm font-bold hover:bg-stone-50 transition-colors cursor-pointer"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-[#D8D4CD] bg-white text-stone-700 text-sm font-bold hover:bg-stone-50 transition-colors cursor-pointer shadow-2xs"
                 >
                   <Save className="w-4 h-4" />
-                  <span>임시저장</span>
+                  <span>{isSubmitting ? '저장 중...' : '임시저장'}</span>
                 </button>
 
                 <button
                   type="button"
                   disabled={isSubmitting}
                   onClick={() => handleSave(true)}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-md bg-[#D65A2F] text-white text-sm font-bold hover:bg-[#b84821] transition-colors shadow-xs cursor-pointer"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg bg-[#D65A2F] text-white text-sm font-bold hover:bg-[#b84821] transition-colors shadow-xs cursor-pointer"
                 >
                   {isNeedsRevision ? (
                     <>
                       <RefreshCw className="w-4 h-4" />
-                      <span>보완 후 재제출</span>
+                      <span>{isSubmitting ? '제출 중...' : '보완 후 재제출'}</span>
                     </>
                   ) : (
                     <>
                       <Send className="w-4 h-4" />
-                      <span>교수님께 제출</span>
+                      <span>{isSubmitting ? '제출 중...' : '교수님께 제출'}</span>
                     </>
                   )}
                 </button>
-              </div>
-            )
-          ) : (
-            <div className="text-xs text-stone-500 font-medium">
-              * 주간 보고서 제출 및 수정은 팀장({activeTeam.leaderName}) 권한입니다.
-            </div>
-          )}
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -806,6 +964,13 @@ export const CurrentWeekDashboard: React.FC = () => {
               <p className="text-xs text-stone-500">
                 학생들이 직접 팀명, 가구 프로젝트 주제, 팀장 및 팀원 명단을 수정할 수 있습니다. 저장 시 전체 시스템에 즉시 반영됩니다.
               </p>
+
+              {teamModalError && (
+                <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-800 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  <span>{teamModalError}</span>
+                </div>
+              )}
 
               {/* 1. 팀명 */}
               <div className="space-y-1.5">

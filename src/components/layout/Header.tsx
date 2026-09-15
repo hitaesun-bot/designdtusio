@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenFirebaseGuide }) => {
                 DSII TEAM TRACKER
               </h1>
               <span className="hidden sm:inline-block text-xs font-medium text-[#D65A2F] bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
-                {classInfo.currentWeek}주차 · 아이디에이션
+                {classInfo.currentWeek}주차 · {classInfo.currentWeek <= 5 ? '탐색·리서치' : classInfo.currentWeek <= 8 ? '아이디에이션' : classInfo.currentWeek <= 13 ? '시각화·개발' : '정리·발표'}
               </span>
             </div>
             <p className="text-xs text-stone-500 hidden md:block">

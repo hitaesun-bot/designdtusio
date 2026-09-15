@@ -705,7 +705,7 @@ export const ClassManagementView: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-[#8C827A] uppercase tracking-wider block">
-                    designdtusio-git-main-hitaesun-1542s-projects.vercel.app
+                    designdtusio.vercel.app
                   </span>
                   <h4 className="text-sm font-bold text-[#202020] leading-snug">
                     DSII TEAM TRACKER · 디자인스튜디오 II
@@ -719,25 +719,28 @@ export const ClassManagementView: React.FC = () => {
 
             {/* Share Link & One-Click Copy */}
             <div className="space-y-2 pt-1">
-              <label className="block text-xs font-bold text-stone-700">
-                공식 배포 공유 링크 (Vercel)
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-stone-700">
+                  공식 배포 공유 링크 (Production URL)
+                </label>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                  공개 접속 가능
+                </span>
+              </div>
               <div className="flex items-center gap-2">
                 <input
                   type="text"
                   readOnly
-                  value="https://designdtusio-git-main-hitaesun-1542s-projects.vercel.app/"
+                  value="https://designdtusio.vercel.app/"
                   className="w-full p-2 text-xs font-mono bg-stone-50 border border-[#D8D4CD] rounded-lg text-stone-700 select-all"
                 />
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(
-                      'https://designdtusio-git-main-hitaesun-1542s-projects.vercel.app/'
-                    );
+                    navigator.clipboard.writeText('https://designdtusio.vercel.app/');
                     setCopiedOgUrl(true);
                     setTimeout(() => setCopiedOgUrl(false), 2500);
                   }}
-                  className="shrink-0 px-3 py-2 bg-[#D65A2F] hover:bg-[#b84821] text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
+                  className="shrink-0 px-3 py-2 bg-[#D65A2F] hover:bg-[#b84821] text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
                   {copiedOgUrl ? (
                     <>
@@ -752,6 +755,9 @@ export const ClassManagementView: React.FC = () => {
                   )}
                 </button>
               </div>
+              <p className="text-[11px] text-stone-500 leading-relaxed">
+                💡 <strong>중요 안내:</strong> <code>https://designdtusio-git-main-*.vercel.app</code> 형식의 주소는 Vercel 보안 정책상 미리보기용 로그인(SSO) 보호가 걸려 있어 외부 메신저 썸네일 크롤러가 차단됩니다. 반드시 위 <strong><code>https://designdtusio.vercel.app/</code></strong> 주소로 공유하셔야 오픈 그래프 카드 및 학생 접속이 원활하게 작동합니다.
+              </p>
             </div>
 
             {/* Meta tags preview toggle */}
@@ -763,19 +769,20 @@ export const ClassManagementView: React.FC = () => {
 <meta property="og:site_name" content="DSII TEAM TRACKER" />
 <meta property="og:title" content="DSII TEAM TRACKER · 디자인스튜디오 II" />
 <meta property="og:description" content="김태선 교수 디자인스튜디오 II 15주 팀 프로젝트 관리 시스템 (01반·02반 16개 팀 주간 진척·산출물·크리틱 피드백)" />
-<meta property="og:url" content="https://designdtusio-git-main-hitaesun-1542s-projects.vercel.app/" />
-<meta property="og:image" content="https://designdtusio-git-main-hitaesun-1542s-projects.vercel.app/og-image.png" />
+<meta property="og:url" content="https://designdtusio.vercel.app/" />
+<meta property="og:image" content="https://designdtusio.vercel.app/og-image.png" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
+<link rel="image_src" href="https://designdtusio.vercel.app/og-image.png" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="DSII TEAM TRACKER · 디자인스튜디오 II" />
 <meta name="twitter:description" content="김태선 교수 디자인스튜디오 II 15주 팀 프로젝트 관리 시스템 (01반·02반 16개 팀 주간 진척·산출물·크리틱 피드백)" />
-<meta name="twitter:image" content="https://designdtusio-git-main-hitaesun-1542s-projects.vercel.app/og-image.png" />`;
+<meta name="twitter:image" content="https://designdtusio.vercel.app/og-image.png" />`;
                   navigator.clipboard.writeText(metaTags);
                   setCopiedTags(true);
                   setTimeout(() => setCopiedTags(false), 2500);
                 }}
-                className="text-xs text-stone-600 hover:text-stone-900 font-semibold underline flex items-center gap-1"
+                className="text-xs text-stone-600 hover:text-stone-900 font-semibold underline flex items-center gap-1 cursor-pointer"
               >
                 {copiedTags ? (
                   <>

@@ -166,7 +166,7 @@ export const DEFAULT_CURRICULUM: WeeklyCurriculum[] = [
   {
     week: 3,
     phase: '탐색·리서치',
-    topic: '시장 및 산업 벤치마킹 조사 / 기술 결구 선행사례 분석',
+    topic: '시장 및 산업 벤치마킹 조사 / 기술 결구 선행사례 분석 (현재 시작 주차)',
     milestone: '국내외 가구 브랜드 및 유사 기구 메커니즘 10종 이상 비교 분석',
     deliverable: '경쟁 제품 포지셔닝 맵 및 하드웨어 힌지/결합 분석표',
     tips: '비슷한 문제를 해결한 다른 제품의 메커니즘(힌지, 레일, 체결구)을 집중 분석하세요.',
@@ -190,7 +190,7 @@ export const DEFAULT_CURRICULUM: WeeklyCurriculum[] = [
   {
     week: 6,
     phase: '아이디에이션',
-    topic: '가구 구조 메커니즘 구체화 및 3D 스케치 모델링 (현재 진행 주차)',
+    topic: '가구 구조 메커니즘 구체화 및 3D 스케치 모델링',
     milestone: '치수 간섭 검토, 하중 지지점 분석, 핵심 가변/수납 작동 기구 3D 검증',
     deliverable: '3D CAD 스케치 렌더링, 치수 간섭 검토서 및 주간 진척 보고서',
     tips: '김태선 교수의 주요 피드백: 접합부 하중과 휨 변형을 반드시 실물 스케일로 검토할 것.',
